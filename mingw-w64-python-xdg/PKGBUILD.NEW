@@ -1,0 +1,51 @@
+# Maintainer: J. Peter Mugaas <jpmugaas@suddenlink.net>
+#This value is here because some python package names have capital letters
+#while there is a strong preference for lowercase letters in ArchLinux and
+#MSYS packages.
+
+_pyname=pyxdg
+_realname=xdg
+pkgbase=mingw-w64-python-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-python-${_realname}")
+provides=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+conflicts=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+replaces=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+pkgver=0.27
+pkgrel=1
+pkgdesc="Python library to access freedesktop.org standards (mingw-w64)"
+arch=('any')
+url='https://freedesktop.org/Software/pyxdg'
+license=('LGPL')
+depends=("${MINGW_PACKAGE_PREFIX}-python")
+makedepends=("${MINGW_PACKAGE_PREFIX}-python-setuptools")
+options=('staticlibs' 'strip' '!debug')
+source=("${_pyname}-${pkgver}.tar.gz"::"https://github.com/takluyver/pyxdg/archive/rel-${pkgver}.tar.gz")
+sha256sums=('2bd7f0b30bdeeaa15ed7d5651b3e266b2f40a37d3170dc37646e27deb7966dce')
+
+prepare() {
+  rm -rf python-build-${CARCH} | true
+  cp -r "${_pyname}-rel-${pkgver}" "python-build-${CARCH}"
+}
+
+build() {  
+  msg "Python build for ${CARCH}"
+  cd "${srcdir}/python-build-${CARCH}"
+  MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
+      ${MINGW_PREFIX}/bin/python setup.py build
+}
+
+check() {
+  msg "Python test for ${CARCH}"  
+  cd "${srcdir}/python-build-${CARCH}"
+  MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
+      ${MINGW_PREFIX}/bin/python setup.py check
+}
+
+package() {
+  cd "${srcdir}/python-build-${CARCH}"
+  MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
+  ${MINGW_PREFIX}/bin/python setup.py install --prefix=${MINGW_PREFIX} \
+    --root="${pkgdir}" --optimize=1 --skip-build
+
+  install -Dm644 COPYING "${pkgdir}${MINGW_PREFIX}/share/licenses/python-${_realname}/COPYING"
+}

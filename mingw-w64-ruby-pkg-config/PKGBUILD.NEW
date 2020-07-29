@@ -1,0 +1,28 @@
+# Maintainer: Andrew Sun <adsun701@gmail.com>
+
+_gemname=pkg-config
+_realname=ruby-${_gemname}
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=1.4.4
+pkgrel=1
+pkgdesc="Implementation of pkg-config in ruby (mingw-w64)"
+arch=('any')
+url="https://github.com/ruby-gnome2/pkg-config"
+license=('LGPL')
+depends=("${MINGW_PACKAGE_PREFIX}-ruby")
+provides=("${MINGW_PACKAGE_PREFIX}-ruby-pkgconfig")
+replaces=("${MINGW_PACKAGE_PREFIX}-ruby-pkgconfig")
+conflicts=("${MINGW_PACKAGE_PREFIX}-ruby-pkgconfig")
+source=("https://rubygems.org/downloads/${_gemname}-${pkgver}.gem")
+noextract=("${_gemname}-${pkgver}.gem")
+sha256sums=('216fdf7ecd753dcc258cf516e1843f8e354c155b0aef2428f36e60c840f5a6e8')
+
+package() {
+  local _gemdir="$(ruby -e 'puts Gem.default_dir')"
+  _gemdir="$(cygpath -u ${_gemdir})"
+  
+  ${MINGW_PREFIX}/bin/gem install --ignore-dependencies --no-user-install -i "${pkgdir}${_gemdir}" -n "${pkgdir}${MINGW_PREFIX}/bin" ${_gemname}-${pkgver}.gem
+  
+  rm "${pkgdir}${_gemdir}/cache/${_gemname}-${pkgver}.gem"  
+}

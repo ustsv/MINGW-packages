@@ -1,0 +1,64 @@
+# Maintainer: gym603 <gui_yuan_miao@163.com>
+
+_realname=keras
+pkgbase=mingw-w64-python-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-python-${_realname}")
+provides=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+conflicts=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+replaces=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+pkgver=2.4.0
+pkgrel=1
+pkgdesc="Keras is a high-level neural networks API, written in Python and capable of running on top of TensorFlow, CNTK, or Theano (mingw-w64)"
+arch=('any')
+url="https://keras.io/"
+license=('MIT')
+depends=("${MINGW_PACKAGE_PREFIX}-python"
+         "${MINGW_PACKAGE_PREFIX}-python-numpy"
+         "${MINGW_PACKAGE_PREFIX}-python-scipy"
+         "${MINGW_PACKAGE_PREFIX}-python-six"
+         "${MINGW_PACKAGE_PREFIX}-python-yaml"
+         "${MINGW_PACKAGE_PREFIX}-python-h5py"
+         "${MINGW_PACKAGE_PREFIX}-python-keras_applications"
+         "${MINGW_PACKAGE_PREFIX}-python-keras_preprocessing"
+         "${MINGW_PACKAGE_PREFIX}-python-theano")
+makedepends=("patch"
+             "${MINGW_PACKAGE_PREFIX}-python-setuptools")
+source=(${_realname}-${pkgver}.tar.gz::https://github.com/keras-team/keras/archive/${pkgver}.tar.gz
+        0001-change-backend-to-theano.patch)
+sha256sums=('7e8df9c5291f21a01bccffd8cbdd44abd7d2679ab2f7a892a503e88291627183'
+            '2e53d3c474d0d797ef7c6faf3ecdc77dfe123fa43bd19a151caaf894baadb47e')
+
+
+# Helper macros to help make tasks easier #
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    msg2 "Applying ${_patch}"
+    patch -b -p1 -i "${srcdir}/${_patch}"
+  done
+}
+
+prepare() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  apply_patch_with_msg \
+    0001-change-backend-to-theano.patch
+
+  cd "${srcdir}"
+  rm -rf "python-build-${CARCH}" | true
+  cp -r "${_realname}-${pkgver}" "python-build-${CARCH}"
+}
+
+build() {
+  cd "${srcdir}/python-build-${CARCH}"
+  ${MINGW_PREFIX}/bin/python setup.py --quiet build
+}
+
+package() {
+  cd "${srcdir}/python-build-${CARCH}"
+
+  MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
+    ${MINGW_PREFIX}/bin/python setup.py --quiet install --prefix=${MINGW_PREFIX} --root="${pkgdir}" -O1 --skip-build
+
+  install -Dm644 LICENSE "${pkgdir}${MINGW_PREFIX}/share/licenses/python-${_realname}/LICENSE"
+}

@@ -1,0 +1,39 @@
+# Maintainer: Alexey Pavlov <Alexpux@gmail.com>
+# Contributor: Paul Moore <p.f.moore@gmail.com>
+
+_realname=grep
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=3.5
+pkgrel=1
+pkgdesc="Grep searches one or more input files for lines containing a match to a specified pattern (mingw-w64)"
+arch=('any')
+url='https://www.gnu.org/software/grep/'
+license=('GPL3')
+depends=("${MINGW_PACKAGE_PREFIX}-pcre")
+options=('strip' '!libtool' 'staticlibs')
+source=("https://ftp.gnu.org/gnu/${_realname}/${_realname}-${pkgver}.tar.xz")
+sha256sums=('58e6751c41a7c25bfc6e9363a41786cff3ba5709cf11d5ad903cf7cce31cc3fb')
+
+prepare() {
+  cd ${srcdir}/${_realname}-${pkgver}
+}
+
+build() {
+  cd ${srcdir}/${_realname}-${pkgver}
+  ./configure --prefix=${MINGW_PREFIX} \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST}
+
+  make
+}
+
+package() {
+  cd ${srcdir}/${_realname}-${pkgver}
+  make install DESTDIR="${pkgdir}"
+
+  # Licenses
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/README" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/README"
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/COPYING" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
+}

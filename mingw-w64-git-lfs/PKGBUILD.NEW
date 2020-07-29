@@ -1,0 +1,73 @@
+# Contributor: Abdó Roig-Maranges <abdo.roig@gmail.com>
+
+_realname=git-lfs
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=2.12.1
+pkgsrc=${_realname}-${pkgver}
+pkgrel=1
+arch=("any")
+pkgdesc="An open source Git extension for versioning large files (mingw-w64)"
+url="https://git-lfs.github.com/"
+license=('MIT')
+options=('!strip')
+depends=("git")
+makedepends=("unzip"
+             "patch"
+             "${MINGW_PACKAGE_PREFIX}-go"
+             #"${MINGW_PACKAGE_PREFIX}-ruby"
+             )
+source=(${pkgsrc}.tar.gz::"https://github.com/github/git-lfs/archive/v${pkgver}.tar.gz")
+# Extract sources ourselves (avoid bsdtar failure in pull #2406)
+noextract=(${pkgsrc}.tar.gz)
+sha256sums=('8183c4cbef8cf9c2e86b0c0a9822451e2df272f89ceb357c498bfdf0ff1b36c7')
+
+prepare() {
+  # Extract sources ourselves (avoid bsdtar failure in pull #2406)
+  [[ -d ${srcdir}/${pkgsrc} ]] && rm -rf ${srcdir}/${pkgsrc}
+  tar -xf ${srcdir}/${pkgsrc}.tar.gz -C ${srcdir}
+
+  # apply patches
+  cd "${srcdir}/${pkgsrc}"
+
+  # Clear go cache
+  #rm -Rf "${srcdir}/src"
+
+  # Setup local gopath
+  #mkdir -p "${srcdir}/src/github.com/git-lfs"
+  #cp -R "${srcdir}/${pkgsrc}/" "${srcdir}/src/github.com/git-lfs/git-lfs"
+
+  # Fetch dependencies
+  #. ${MINGW_PREFIX}/etc/profile.d/go.sh
+  #GOPATH="${srcdir}" go get -v -d
+
+  #gem install ronn
+}
+
+build() {
+  cd "${srcdir}/${pkgsrc}"
+  
+  ${MINGW_PREFIX}/bin/go build \
+    -gcflags "all=-trimpath=${PWD}" \
+    -asmflags "all=-trimpath=${PWD}" \
+    -ldflags "-extldflags ${LDFLAGS}" \
+    .
+
+  # build
+  #. ${MINGW_PREFIX}/etc/profile.d/go.sh
+  #GOPATH="${srcdir}" go run script/*.go -cmd build
+  #GOPATH="${srcdir}" make
+
+  # The man pages need ronn, which needs a bunch of missing ruby dependencies.
+  #ronn docs/man/*.ronn
+}
+
+package() {
+  cd "${srcdir}/${pkgsrc}"
+  install -Dm755 "git-lfs.exe" "${pkgdir}${MINGW_PREFIX}/bin/git-lfs"
+  install -Dm644 LICENSE.md "${pkgdir}${MINGW_PREFIX}"/share/licenses/${_realname}/LICENSE
+  # man page
+  #install -d "${pkgdir}${MINGW_PREFIX}/share/man/man1"
+  #install -Dm644 docs/man/*.1 "${pkgdir}${MINGW_PREFIX}/share/man/man1"
+}
+

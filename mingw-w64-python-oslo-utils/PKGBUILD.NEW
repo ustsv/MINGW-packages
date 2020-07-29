@@ -1,0 +1,60 @@
+# Maintainer: J. Peter Mugaas <jpmugaas@suddenlink.net>
+
+_realname=oslo-utils
+pkgbase=mingw-w64-python-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-python-${_realname}")
+provides=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+conflicts=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+replaces=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+pkgver=4.7.0
+pkgrel=1
+pkgdesc="Oslo Utility library (mingw-w64)"
+arch=('any')
+url='https://pypi.org/project/oslo.utils/'
+license=('Apache')
+depends=("${MINGW_PACKAGE_PREFIX}-python")
+makedepends=("${MINGW_PACKAGE_PREFIX}-python-setuptools"
+             "${MINGW_PACKAGE_PREFIX}-python-pbr"
+             "${MINGW_PACKAGE_PREFIX}-python-iso8601"
+             "${MINGW_PACKAGE_PREFIX}-python-oslo-i18n"
+             "${MINGW_PACKAGE_PREFIX}-python-pytz"
+             "${MINGW_PACKAGE_PREFIX}-python-netaddr"
+             "${MINGW_PACKAGE_PREFIX}-python-netifaces"
+             "${MINGW_PACKAGE_PREFIX}-python-debtcollector")
+checkdepends=("${MINGW_PACKAGE_PREFIX}-python-oslotest"
+              "${MINGW_PACKAGE_PREFIX}-python-ddt"
+              "${MINGW_PACKAGE_PREFIX}-python-testrepository")
+source=("${_realname}-${pkgver}.tar.gz"::"https://github.com/openstack/oslo.utils/archive/${pkgver}.tar.gz")
+sha512sums=('f9aaaac48fe72c167b2297a0ee1a6979ff18c48d0c65aa44f4ea85a41a611f492e74ad043fa0b5e987761903760364ed5e25dbd36ee826244ce0ebe8bf0db607')
+
+prepare() {
+  cd "${srcdir}/oslo.utils-${pkgver}"
+
+  # Use python 3's standard monotonic function
+  sed -i '/monotonic/d' requirements.txt
+  sed -i 's/from monotonic import monotonic/from time import monotonic/' oslo_utils/timeutils.py
+
+  # Set version for setuptools_scm
+  export SETUPTOOLS_SCM_PRETEND_VERSION=$pkgver
+  export PBR_VERSION=$pkgver
+}
+
+build() {
+  cd "${srcdir}/oslo.utils-${pkgver}"
+  ${MINGW_PREFIX}/bin/python setup.py build
+}
+
+check() {
+  cd "${srcdir}/oslo.utils-${pkgver}"
+  ${MINGW_PREFIX}/bin/stestr run
+}
+
+package() {
+  cd "${srcdir}/oslo.utils-${pkgver}"
+
+  MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
+  ${MINGW_PREFIX}/bin/python setup.py install --prefix=${MINGW_PREFIX} \
+    --root="${pkgdir}" --optimize=1 --skip-build
+
+  install -Dm644 LICENSE "${pkgdir}${MINGW_PREFIX}/share/licenses/python-${_realname}/LICENSE"
+}

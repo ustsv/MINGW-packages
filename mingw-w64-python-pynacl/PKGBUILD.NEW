@@ -1,0 +1,50 @@
+# Maintainer: Smo <smo@xpra.org>
+
+_realname=pynacl
+pkgbase=mingw-w64-python-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-python-${_realname}")
+provides=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+conflicts=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+replaces=("${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
+pkgver=1.4.0
+pkgrel=1
+pkgdesc="Python binding to the Networking and Cryptography (NaCl) library (mingw-w64)"
+arch=('any')
+url='https://github.com/pyca/pynacl/'
+license=('Apache-2.0')
+depends=("${MINGW_PACKAGE_PREFIX}-python")
+makedepends=("${MINGW_PACKAGE_PREFIX}-python-setuptools"
+             "${MINGW_PACKAGE_PREFIX}-python-cffi"
+             "${MINGW_PACKAGE_PREFIX}-libsodium")
+options=('staticlibs' 'strip' '!debug')
+source=("${_realname}-${pkgver}.tar.gz"::"https://github.com/pyca/pynacl/archive/${pkgver}.tar.gz")
+sha512sums=('815c31a2069cbee1091d7e0ebf0b5572875c4a537311af561b5bce0b9d8051028e367a516b46481453d9780e60e9e7e2a4640d320164059c3974b0319d1cf96d')
+
+prepare() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  # Set version for setuptools_scm
+  export SETUPTOOLS_SCM_PRETEND_VERSION=$pkgver
+}
+
+build() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  #Use system libsodium here
+  SODIUM_INSTALL=system ${MINGW_PREFIX}/bin/python setup.py build
+}
+
+check() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  ${MINGW_PREFIX}/bin/python setup.py check
+}
+
+package() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
+  ${MINGW_PREFIX}/bin/python setup.py install --prefix=${MINGW_PREFIX} \
+    --root="${pkgdir}" --optimize=1 --skip-build
+
+  install -Dm644 LICENSE "${pkgdir}${MINGW_PREFIX}/share/licenses/python-${_realname}/COPYING"
+}

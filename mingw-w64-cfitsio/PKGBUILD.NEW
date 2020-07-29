@@ -1,0 +1,70 @@
+# Maintainer: Alexey Pavlov <alexpux@gmail.com>
+
+_realname=cfitsio
+pkgbase=mingw-w64-${_realname}
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=3.49
+pkgrel=1
+pkgdesc="A library of C and Fortran subroutines for reading and writing data files in FITS (Flexible Image Transport System) data format (mingw-w64)"
+arch=('any')
+url="https://heasarc.gsfc.nasa.gov/fitsio/"
+license=("custom")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-gcc"
+             "${MINGW_PACKAGE_PREFIX}-pkg-config")
+depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs"
+         #"${MINGW_PACKAGE_PREFIX}-curl"
+         "${MINGW_PACKAGE_PREFIX}-zlib")
+options=('strip' 'staticlibs')
+source=("https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${_realname}-${pkgver}.tar.gz"
+        mingw-cmake.patch
+        disable-curl-mingw.patch)
+sha256sums=('91b48ffef544eb8ea3908543052331072c99bf09ceb139cb3c6977fc3e47aac1'
+            '1cd6fc5cf58161624099271178a2421739682a73aaf3129d33acb370358c28fd'
+            '3041bb9948081fca949fa1505107a1806981c5c6f7160fed69b57b7cef86552d')
+
+prepare() {
+  cd ${_realname}-${pkgver}
+  patch -p1 -i ${srcdir}/mingw-cmake.patch
+  patch -p1 -i ${srcdir}/disable-curl-mingw.patch
+}
+
+build() {
+  msg "Build static library"
+  [[ -d ${srcdir}/static-${MINGW_CHOST} ]] && rm -rf ${srcdir}/static-${MINGW_CHOST}
+  mkdir ${srcdir}/static-${MINGW_CHOST} && cd "${srcdir}/static-${MINGW_CHOST}"
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX" \
+  CFLAGS+=" -D_LARGEFILE_SOURCE=ON -D_FILE_OFFSET_BITS=64" \
+    ${MINGW_PREFIX}/bin/cmake.exe \
+    -G"MSYS Makefiles" \
+    -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+    -DBUILD_SHARED_LIBS=OFF \
+    ../${_realname}-${pkgver}
+
+  make
+
+  msg "Build shared library"
+  [[ -d ${srcdir}/shared-${MINGW_CHOST} ]] && rm -rf ${srcdir}/shared-${MINGW_CHOST}
+  mkdir ${srcdir}/shared-${MINGW_CHOST} && cd "${srcdir}/shared-${MINGW_CHOST}"
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX" \
+  CFLAGS+=" -D_LARGEFILE_SOURCE=ON -D_FILE_OFFSET_BITS=64" \
+    ${MINGW_PREFIX}/bin/cmake.exe \
+    -G"MSYS Makefiles" \
+    -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+    -DBUILD_SHARED_LIBS=ON \
+    ../${_realname}-${pkgver}
+
+  make
+}
+
+package() {
+  cd "${srcdir}/static-${MINGW_CHOST}"
+  make DESTDIR="${pkgdir}" install
+
+  cd "${srcdir}/shared-${MINGW_CHOST}"
+  make DESTDIR="${pkgdir}" install
+
+  install -Dm644 ${srcdir}/${_realname}-${pkgver}/License.txt "${pkgdir}${MINGW_PREFIX}"/share/licenses/${_realname}/LICENSE
+}

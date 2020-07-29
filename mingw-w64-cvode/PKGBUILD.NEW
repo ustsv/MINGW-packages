@@ -1,0 +1,46 @@
+# Maintainer: Francis Giraldeau <francis.giraldeau@nrc-cnrc.gc.ca>
+
+_realname=cvode
+pkgbase=mingw-w64-${_realname}
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=5.5.0
+pkgrel=1
+pkgdesc="ordinary differential equation system solver (mingw-w64)"
+arch=('any')
+url="https://computation.llnl.gov/projects/sundials"
+license=('BSD')
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake")
+source=("${_realname}-${pkgver}.tar.gz"::https://computation.llnl.gov/projects/sundials/download/${_realname}-${pkgver}.tar.gz
+        001-install-location.patch)
+sha256sums=('9b16e70a6de3ffe279ba3c05282f685817ee3f0cac44d2800410e01cbf4110d0'
+            '77fe2d4a96ef9b32863694139c876dbfc62742807530b26d0876eb5a86ed0edb')
+
+prepare() {
+  cd ${_realname}-${pkgver}
+  patch -p1 -i ${srcdir}/001-install-location.patch
+}
+
+build() {
+  [[ -d build-${MINGW_CHOST} ]] && rm -rf build-${MINGW_CHOST}
+  mkdir -p build-${MINGW_CHOST}
+  cd build-${MINGW_CHOST}
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+  ${MINGW_PREFIX}/bin/cmake.exe \
+    -G"MSYS Makefiles" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+    ../${_realname}-${pkgver}
+
+  make
+}
+
+package() {
+  cd build-${MINGW_CHOST}
+  make DESTDIR=${pkgdir} install
+
+  # license
+  rm ${pkgdir}${MINGW_PREFIX}/include/sundials/LICENSE
+  install -D -m644 ${srcdir}/${_realname}-${pkgver}/LICENSE \
+  ${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE
+}
